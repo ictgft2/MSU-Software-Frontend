@@ -1,107 +1,90 @@
 "use client"
 
-import { Heart, Menu } from "lucide-react"
+import { Heart, HeartPulse, Menu, X } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
 import { Button } from "./ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet"
 
 function HomeNavbar() {
-  const [isOpen, setIsOpen] = useState(false)
+   const [isOpen, setIsOpen] = useState(false);
 
-  const navigationItems = [
-    { name: "Home", href: "/" },
-    { name: "Services", href: "/services" },
-    { name: "Doctors", href: "/doctors" },
-    { name: "Appointments", href: "/appointments" },
-    { name: "About", href: "/about" },
-    { name: "Contact", href: "/contact" },
-  ]
+  const navItems = [
+    { name: 'Services', href: '#services' },
+    { name: 'Doctors', href: '#doctors' },
+    { name: 'Testimonials', href: '#testimonials' },
+    { name: 'Contact', href: '#contact' },
+  ];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-      <div className="container flex h-16 items-center justify-between px-4 md:px-6">
-        {/* Logo */}
-        <Link href="/" className="flex items-center space-x-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600">
-            <Heart className="h-5 w-5 text-white" />
-          </div>
-          <span className="text-xl font-bold text-gray-900">WeCare</span>
-        </Link>
+    <header className="fixed top-0 left-0 right-0 z-50 bg-white shadow-lg">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-20">
+          {/* Logo/Brand */}
+          <a href="/" className="flex items-center space-x-2 text-2xl font-bold text-blue-700 hover:text-blue-900 transition">
+            <HeartPulse className="w-8 h-8 text-emerald-500" />
+            <span>HealthBridge Clinic</span>
+          </a>
 
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center space-x-8">
-          {navigationItems.map((item) => (
-            <Link
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex space-x-8">
+            {navItems.map((item) => (
+              <a
+                key={item.name}
+                href={item.href}
+                className="text-gray-600 hover:text-blue-700 font-medium transition duration-150"
+              >
+                {item.name}
+              </a>
+            ))}
+          </nav>
+
+          {/* CTA Button (Desktop) */}
+          <a
+            href="/sign-in"
+            className="hidden md:inline-flex items-center px-4 py-2 border border-transparent text-sm font-semibold rounded-full shadow-lg text-white bg-emerald-500 hover:bg-emerald-600 transition duration-300 transform hover:scale-105"
+          >
+            Book Appointment
+          </a>
+
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="md:hidden p-2 rounded-md text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            aria-expanded={isOpen}
+          >
+            {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Menu Panel */}
+      <div
+        className={`md:hidden transition-all duration-300 ease-in-out ${
+          isOpen ? 'max-h-96 opacity-100 py-2' : 'max-h-0 opacity-0 overflow-hidden'
+        } bg-white`}
+      >
+        <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+          {navItems.map((item) => (
+            <a
               key={item.name}
               href={item.href}
-              className="text-sm font-medium text-gray-700 transition-colors hover:text-blue-600"
+              onClick={() => setIsOpen(false)}
+              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700"
             >
               {item.name}
-            </Link>
+            </a>
           ))}
-        </nav>
-
-        {/* Desktop Auth Buttons */}
-        <div className="hidden md:flex items-center space-x-3">
-          <Button variant="ghost" asChild>
-            <Link href="/sign-in">Sign In</Link>
-          </Button>
-          <Button asChild>
-            <Link href="/sign-up">Sign Up</Link>
-          </Button>
+          <a
+            href="/sign-in"
+            onClick={() => setIsOpen(false)}
+            className="block w-full text-center mt-4 px-3 py-2 border border-transparent text-base font-medium rounded-md text-white bg-emerald-500 hover:bg-emerald-600 transition"
+          >
+            Book Appointment
+          </a>
         </div>
-
-        {/* Mobile Menu */}
-        <Sheet open={isOpen} onOpenChange={setIsOpen}>
-          <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="md:hidden">
-              <Menu className="h-6 w-6" />
-              <span className="sr-only">Toggle navigation menu</span>
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-            <div className="flex flex-col space-y-4 mt-6">
-              {/* Mobile Logo */}
-              <div className="flex items-center space-x-2 pb-4 border-b">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600">
-                  <Heart className="h-5 w-5 text-white" />
-                </div>
-                <span className="text-xl font-bold text-gray-900">MediCare</span>
-              </div>
-
-              {/* Mobile Navigation Links */}
-              <nav className="flex flex-col space-y-3">
-                {navigationItems.map((item) => (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    className="text-lg font-medium text-gray-700 transition-colors hover:text-blue-600 py-2"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    {item.name}
-                  </Link>
-                ))}
-              </nav>
-
-              {/* Mobile Auth Buttons */}
-              <div className="flex flex-col space-y-3 pt-6 border-t">
-                <Button variant="outline" className="w-full bg-transparent" asChild>
-                  <Link href="/signin" onClick={() => setIsOpen(false)}>
-                    Sign In
-                  </Link>
-                </Button>
-                <Button className="w-full" asChild>
-                  <Link href="/signup" onClick={() => setIsOpen(false)}>
-                    Sign Up
-                  </Link>
-                </Button>
-              </div>
-            </div>
-          </SheetContent>
-        </Sheet>
       </div>
     </header>
-  )
+  );
 }
 export default HomeNavbar;
