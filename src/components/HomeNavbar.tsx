@@ -1,10 +1,7 @@
 "use client"
 
-import { Heart, HeartPulse, Menu, X } from "lucide-react"
-import Link from "next/link"
+import { HeartPulse, Menu, X } from "lucide-react"
 import { useState } from "react"
-import { Button } from "./ui/button"
-import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet"
 
 function HomeNavbar() {
    const [isOpen, setIsOpen] = useState(false);
@@ -12,7 +9,7 @@ function HomeNavbar() {
   const navItems = [
     { name: 'Services', href: '#services' },
     { name: 'Doctors', href: '#doctors' },
-    { name: 'Testimonials', href: '#testimonials' },
+    // { name: 'Testimonials', href: '#testimonials' },
     { name: 'Contact', href: '#contact' },
   ];
 
@@ -23,7 +20,7 @@ function HomeNavbar() {
           {/* Logo/Brand */}
           <a href="/" className="flex items-center space-x-2 text-2xl font-bold text-blue-700 hover:text-blue-900 transition">
             <HeartPulse className="w-8 h-8 text-emerald-500" />
-            <span>HealthBridge Clinic</span>
+            <span>MSU</span>
           </a>
 
           {/* Desktop Navigation */}

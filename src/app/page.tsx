@@ -426,11 +426,11 @@ const ContactForm = () => {
                     <div className="space-y-4">
                         <div className="flex items-center space-x-3">
                             <Phone className="w-6 h-6 text-emerald-300" />
-                            <span className="font-medium">(555) 123-4567</span>
+                            <span className="font-medium">(234) 080-0000-0000</span>
                         </div>
                         <div className="flex items-center space-x-3">
                             <MapPin className="w-6 h-6 text-emerald-300" />
-                            <span className="font-medium">123 Health Ave, City, ST 12345</span>
+                            <span className="font-medium">Faith Tabernacle, CanaanLand. Ota</span>
                         </div>
                     </div>
                 </div>
@@ -576,7 +576,7 @@ const HomePage = () => {
         <Hero />
         <TrustBar />
         <ServicesSection />
-        <ValueProposition />
+        {/* <ValueProposition /> */}
         {/* <TestimonialsSection /> */}
         <ContactForm />
       </main>

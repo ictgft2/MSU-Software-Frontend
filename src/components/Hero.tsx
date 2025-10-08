@@ -1,13 +1,13 @@
 import { CalendarDays } from "lucide-react";
 
 const Hero = () => (
-  <section className="pt-24 md:pt-32 bg-gray-50 overflow-hidden">
+  <section className="pt-18 md:pt-24 bg-gray-50 overflow-hidden">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
       <div className="lg:grid lg:grid-cols-12 lg:gap-12 items-center">
         {/* Text Content */}
         <div className="col-span-12 lg:col-span-7">
           <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-gray-900 leading-tight">
-            Expert Care, <span className="text-blue-700">Right in Your Neighborhood</span>.
+            Expert Care, <span className="text-blue-700">Here at Faith Tabernacle</span>.
           </h1>
           <p className="mt-4 text-xl md:text-2xl text-gray-600">
             Schedule your same-day appointment with our top-rated, compassionate specialists today. Your health is our priority.
@@ -26,9 +26,9 @@ const Hero = () => (
         {/* Image/Illustration */}
         <div className="mt-12 lg:mt-0 col-span-12 lg:col-span-5 relative">
           {/* Placeholder for a professional medical image */}
-          <div className="aspect-w-16 aspect-h-9 sm:aspect-h-10 md:aspect-h-12 rounded-3xl overflow-hidden shadow-2xl">
+          <div className="rounded-3xl overflow-hidden shadow-2xl">
             <img
-              src="https://placehold.co/600x400/1D4ED8/FFFFFF?text=Modern+Medical+Clinic"
+              src="/logo/logo.png"
               alt="A smiling doctor and patient in a modern clinic."
               className="object-cover w-full h-full"
               onError={(e: any) => {

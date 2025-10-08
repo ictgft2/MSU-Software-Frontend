@@ -83,7 +83,7 @@ function SignUpAuthForm() {
       );
     };
 
-  const onSubmitHandler = async (data: { firstName: string; lastName: string; email: string; phone: string; address: string; }, event?: FormEvent<object> | undefined ) => {
+  const onSubmitHandler: any = async (data: { firstName: string; lastName: string; email: string; phone: string; address: string; }, event?: FormEvent<object> | undefined ) => {
     event?.preventDefault();
 
     const payLoad = {
