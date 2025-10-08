@@ -33,9 +33,9 @@ const FormField = <T extends FieldValues>({
         <FormItem className={`${cStyle}`}>
           <FormLabel className="label">{label}</FormLabel>
           <FormControl>
-            <div className='flex justify-center items-center w-full border rounded focus:outline-ring-1'>
+            <div className={`flex justify-center items-center w-full focus:outline-ring-1 ${label === 'Mobile Phone' ? 'border-r border-t border-b border-gray-300 rounded-tr-md rounded-br-md' : 'border rounded'}`}>
               <Input
-                className="focus:outline-none border-none"
+                className={`focus:outline-none border-none`}
                 type={type}
                 placeholder={placeholder}
                 {...field}
