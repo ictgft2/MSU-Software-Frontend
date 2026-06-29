@@ -4,7 +4,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'WeCare - God heals',
+  title: 'The Gilead - God heals',
   description: 'A medical services managemnet solution',
 };
 
