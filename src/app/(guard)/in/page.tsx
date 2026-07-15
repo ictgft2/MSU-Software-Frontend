@@ -3,36 +3,48 @@
 import DashboardHeader from "@src/components/dashboard/Header";
 import StatCards from "@src/components/dashboard/StatCards";
 import PatientFlow from "@src/components/dashboard/PatientFlow";
-import AlertsPanel, { UnitHeatmap } from "@src/components/dashboard/AlertsPanel";
+import AlertsPanel from "@src/components/dashboard/AlertsPanel";
 
 export default function DashboardPage() {
-  return (
-    <>
-      <DashboardHeader />
-      <StatCards />
+    return (
+        <div className="flex flex-col min-h-full justify-between space-y-6">
+            <div>
+                {/* Header Title Section */}
+                <DashboardHeader />
 
-      <div className="grid grid-cols-1 xl:grid-cols-[2.2fr_1fr] gap-5 items-start">
-        <PatientFlow />
-        <AlertsPanel />
-      </div>
+                {/* Global Four metrics layout */}
+                <StatCards />
 
-      <div className="grid grid-cols-1 xl:grid-cols-[2.2fr_1fr] gap-5 items-start">
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[11.5px] text-surface-muted px-1 py-1.5">
-          <span className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-            System Latency: 4ms
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-            Biometric Sync: Active
-          </span>
+                {/* Inner layout split grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                    {/* Main tracking element table */}
+                    <div className="lg:col-span-2">
+                        <PatientFlow />
+                    </div>
+
+                    {/* Contextual warning side panels */}
+                    <div className="lg:col-span-1">
+                        <AlertsPanel />
+                    </div>
+                </div>
+            </div>
+
+            {/* Status Footer Metrics Bar */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between text-[11px] text-gray-500 font-mono pt-4 border-t border-gray-200 gap-2">
+                <div className="flex items-center gap-4">
+                    <span className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-[#2E7D32]" />
+                        System Latency: 4ms
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-[#2E7D32]" />
+                        Biometric Sync: Active
+                    </span>
+                </div>
+                <span className="text-gray-400 select-none">
+                    GILEAD_PORTAL_SECURE_V4.2.0 // UNIT_CMD_ALPHA_0
+                </span>
+            </div>
         </div>
-        <UnitHeatmap />
-      </div>
-
-      <div className="text-right text-[10px] text-[#b5b5b9] pt-1">
-        GILEAD_PORTAL_SECURE_V4.2.0 // UNIT_CMD_ALPHA_5
-      </div>
-    </>
-  );
+    );
 }

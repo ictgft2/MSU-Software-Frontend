@@ -2,96 +2,95 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Menu,
-  Search,
-  Bell,
-  CircleQuestionMark,
-  Cross,
-} from "lucide-react";
-import { useSidebar } from "@src/components/layouts/SidebarContext";
-import { cn } from "@src/lib/utils";
-
-const topTabs = [
-  { name: "Dashboard", href: "/in" },
-  { name: "Protocol", href: "/in/protocol" },
-  { name: "Analytics", href: "/in/admin" },
-];
+import { Search, Bell, HelpCircle, UserCircle } from "lucide-react";
 
 export default function Navbar() {
-  const pathname = usePathname();
-  const { openSidebar } = useSidebar();
+    const pathname = usePathname();
 
-  const isTabActive = (href: string) => {
-    if (href === "/in") return pathname === "/in";
-    return pathname === href || pathname.startsWith(`${href}/`);
-  };
+    // Helper to determine active tab underlines
+    const isTabActive = (path: string) => {
+        if (path === "/in" && (pathname === "/" || pathname === "/in")) return true;
+        return pathname === path;
+    };
 
-  return (
-    <header className="flex items-center justify-between bg-white border-b border-surface-border px-4 lg:px-5 h-14 shrink-0 gap-3">
-      <div className="flex items-center gap-4 lg:gap-7 min-w-0">
-        <button
-          type="button"
-          onClick={openSidebar}
-          className="lg:hidden shrink-0 text-surface-muted"
-          aria-label="Open menu"
-        >
-          <Menu className="w-5 h-5" />
-        </button>
+    return (
+        <header className="w-full h-16 bg-[#F9F9F9] border-b border-gray-200 flex items-center justify-between px-6 shadow-sm">
+            {/* Brand Identity / Title */}
+            <div className="flex items-center gap-8">
+                <span className="text-[#9E2A2B] font-bold text-lg tracking-wide">
+                    The Gilead Medical Portal
+                </span>
 
-        <div className="flex items-center gap-2 font-bold text-sm shrink-0 text-ink">
-          <span className="w-5 h-5 bg-brand-red rounded flex items-center justify-center text-white shrink-0">
-            <Cross className="w-3 h-3" />
-          </span>
-          <span className="hidden sm:inline truncate">The Gilead Medical Portal</span>
-        </div>
+                {/* Top Mini-Tabs */}
+                <nav className="flex gap-6 h-16">
+                    <Link
+                        href="/in"
+                        className={`relative flex items-center text-sm font-semibold transition-colors h-full px-1 ${isTabActive("/in") ? "text-[#9E2A2B]" : "text-gray-500 hover:text-gray-800"
+                            }`}
+                    >
+                        Dashboard
+                        {isTabActive("/in") && (
+                            <span className="absolute bottom-0 left-0 right-0 h-[3px] bg-[#9E2A2B]" />
+                        )}
+                    </Link>
 
-        <nav className="hidden md:flex items-center gap-5 lg:gap-6 text-[13px] text-surface-muted">
-          {topTabs.map((tab) => {
-            const active = isTabActive(tab.href);
-            return (
-              <Link
-                key={tab.name}
-                href={tab.href}
-                className={cn(
-                  "pb-4 -mb-4 border-b-2 border-transparent transition-colors",
-                  active
-                    ? "text-brand-red font-semibold border-brand-red"
-                    : "hover:text-ink"
-                )}
-              >
-                {tab.name}
-              </Link>
-            );
-          })}
-        </nav>
-      </div>
+                    <Link
+                        href="/in/protocol"
+                        className={`relative flex items-center text-sm font-semibold transition-colors h-full px-1 ${isTabActive("/protocol") ? "text-[#9E2A2B]" : "text-gray-500 hover:text-gray-800"
+                            }`}
+                    >
+                        Protocol
+                        {isTabActive("/in/protocol") && (
+                            <span className="absolute bottom-0 left-0 right-0 h-[3px] bg-[#9E2A2B]" />
+                        )}
+                    </Link>
 
-      <div className="flex items-center gap-2 lg:gap-4 shrink-0">
-        <div className="hidden sm:flex items-center gap-2 bg-surface rounded-md px-3 py-1.5 text-surface-muted text-xs w-40 lg:w-56">
-          <Search className="w-3.5 h-3.5 shrink-0" />
-          <span className="truncate">Search patient ID or protocol...</span>
-        </div>
+                    <Link
+                        href="/analytics"
+                        className={`relative flex items-center text-sm font-semibold transition-colors h-full px-1 ${isTabActive("/analytics") ? "text-[#9E2A2B]" : "text-gray-500 hover:text-gray-800"
+                            }`}
+                    >
+                        Analytics
+                        {isTabActive("/analytics") && (
+                            <span className="absolute bottom-0 left-0 right-0 h-[3px] bg-[#9E2A2B]" />
+                        )}
+                    </Link>
+                </nav>
+            </div>
 
-        <button
-          type="button"
-          className="relative w-7 h-7 rounded-full bg-surface flex items-center justify-center text-surface-muted"
-          aria-label="Notifications"
-        >
-          <Bell className="w-4 h-4" />
-          <span className="absolute top-0 right-0 w-2 h-2 bg-brand-red rounded-full border border-white" />
-        </button>
+            {/* Search and Profile Controls */}
+            <div className="flex items-center gap-6">
+                {/* Search Bar */}
+                <div className="relative w-80">
+                    <span className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                        <Search size={18} className="text-gray-400" />
+                    </span>
+                    <input
+                        type="text"
+                        placeholder="Search patient ID or clinical protocol..."
+                        className="w-full pl-10 pr-4 py-2 bg-[#EFEFEF] text-sm text-gray-700 placeholder-gray-500 rounded-md border border-transparent focus:outline-none focus:bg-white focus:border-red-200 transition-all"
+                    />
+                </div>
 
-        <button
-          type="button"
-          className="hidden sm:flex w-7 h-7 rounded-full bg-surface items-center justify-center text-surface-muted"
-          aria-label="Help"
-        >
-          <CircleQuestionMark className="w-4 h-4" />
-        </button>
+                {/* Action Icons */}
+                <div className="flex items-center gap-4 text-gray-600">
+                    <button className="relative p-1.5 hover:bg-gray-100 rounded-full transition-colors text-[#9E2A2B]">
+                        <Bell size={21} />
+                        {/* Optional Notification Dot */}
+                        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-600 rounded-full" />
+                    </button>
 
-        <div className="w-7 h-7 rounded-full bg-surface-soft shrink-0" aria-hidden />
-      </div>
-    </header>
-  );
+                    <button className="p-1.5 hover:bg-gray-100 rounded-full transition-colors text-gray-500">
+                        <HelpCircle size={21} />
+                    </button>
+
+                    <hr className="h-6 w-[1px] bg-gray-300" />
+
+                    <button className="p-1.5 hover:bg-gray-100 rounded-full transition-colors text-gray-500">
+                        <UserCircle size={24} />
+                    </button>
+                </div>
+            </div>
+        </header>
+    );
 }

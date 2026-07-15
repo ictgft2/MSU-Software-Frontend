@@ -1,173 +1,83 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Radio, ChevronLeft, ChevronRight } from "lucide-react";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardFooter,
-} from "@src/components/ui/card";
-import { Badge } from "@src/components/ui/badge";
-import { Button } from "@src/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@src/components/ui/table";
-import { cn } from "@src/lib/utils";
-import type { Encounter } from "@src/dto/encounter";
-import encountersService from "@src/services/encounters.service";
-import operationsService from "@src/services/operations.service";
-
-type FlowRow = {
-  id: string;
-  name: string;
-  type: "EMERGENCY" | "COLD";
-  status: string;
-  time: string;
-};
+const data = [
+    { id: "GL-88219", name: "J. Henderson", type: "EMERGENCY", status: "Waiting for Vitals", statusColor: "bg-[#C62828]", time: "00:42:15", img: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=60" },
+    { id: "GL-90332", name: "S. Richardson", type: "COLD", status: "In Consultation", statusColor: "bg-gray-400", time: "02:18:44", img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&auto=format&fit=crop&q=60" },
+    { id: "GL-77120", name: "M. Aris", type: "COLD", status: "In Ward", statusColor: "bg-gray-400", time: "08:05:22", img: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80&auto=format&fit=crop&q=60" },
+    { id: "GL-11204", name: "L. Thompson", type: "EMERGENCY", status: "Stabilizing", statusColor: "bg-[#C62828]", time: "00:12:31", img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&auto=format&fit=crop&q=60" }
+];
 
 export default function PatientFlow() {
-  const [rows, setRows] = useState<FlowRow[]>([]);
+    return (
+        <div className="bg-white border border-gray-200 rounded shadow-sm flex flex-col h-full">
+            {/* Header Banner */}
+            <div className="bg-[#2D3134] text-white p-3 px-4 flex justify-between items-center rounded-t">
+                <span className="text-sm font-semibold tracking-wide">Live Patient Flow</span>
+                <span className="bg-[#C62828] text-[9px] font-extrabold tracking-widest px-1.5 py-0.5 rounded animate-pulse">LIVE FEED</span>
+            </div>
 
-  useEffect(() => {
-    let active = true;
+            {/* Grid Content */}
+            <div className="overflow-x-auto flex-1">
+                <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                        <tr className="bg-[#EFEFEF] border-b border-gray-200 text-gray-600 font-bold tracking-wider uppercase text-[10px]">
+                            <th className="p-3 pl-4">Patient ID</th>
+                            <th className="p-3">Case Type</th>
+                            <th className="p-3">Current Status</th>
+                            <th className="p-3 pr-4">Time In System</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                        {data.map((row, idx) => (
+                            <tr key={idx} className="hover:bg-gray-50/70 transition-colors">
+                                {/* ID & Name Block */}
+                                <td className="p-3 pl-4 flex items-center gap-3">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={row.img} alt="" className="w-8 h-8 rounded-md object-cover border border-gray-300" />
+                                    <div>
+                                        <div className="font-bold text-gray-900 tracking-tight">{row.id}</div>
+                                        <div className="text-[10px] text-gray-500 font-medium">{row.name}</div>
+                                    </div>
+                                </td>
 
-    async function load() {
-      const [queue, consult, pharmacy] = await Promise.all([
-        operationsService.getQueue().catch(() => []),
-        encountersService.listByStatus("InConsultation").catch(() => []),
-        encountersService.listByStatus("PharmacyPending").catch(() => []),
-      ]);
+                                {/* Badge Trigger Type */}
+                                <td className="p-3">
+                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wide border ${row.type === "EMERGENCY"
+                                            ? "bg-red-50 border-red-200 text-[#C62828]"
+                                            : "bg-gray-50 border-gray-200 text-gray-500"
+                                        }`}>
+                                        {row.type === "EMERGENCY" ? "✦ EMERGENCY" : "☤ COLD"}
+                                    </span>
+                                </td>
 
-      if (!active) return;
+                                {/* Status indicator badge */}
+                                <td className="p-3 text-gray-700 font-medium">
+                                    <span className="inline-flex items-center gap-1.5">
+                                        <span className={`w-2 h-2 rounded-full ${row.statusColor}`} />
+                                        {row.status}
+                                    </span>
+                                </td>
 
-      const mappedQueue: FlowRow[] = (queue || []).map((item) => ({
-        id: item.encounterId || item.id || "—",
-        name: item.patientName || item.fullName || "Patient",
-        type: String(item.admissionType || "")
-          .toLowerCase()
-          .includes("emergency")
-          ? "EMERGENCY"
-          : "COLD",
-        status: item.status || "Queued",
-        time: item.estimatedWaitMinutes != null
-          ? `~${item.estimatedWaitMinutes}m`
-          : "—",
-      }));
+                                {/* Timer text */}
+                                <td className="p-3 pr-4 font-mono font-bold text-gray-700">
+                                    {row.time}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
 
-      const mapEncounter = (item: Encounter, fallbackStatus: string): FlowRow => ({
-        id: item.id,
-        name: item.patientName || item.fullName || item.patientId || "Patient",
-        type: String(item.admissionType || "")
-          .toLowerCase()
-          .includes("emergency")
-          ? "EMERGENCY"
-          : "COLD",
-        status: item.status || fallbackStatus,
-        time: item.createdAt ? new Date(item.createdAt).toLocaleTimeString() : "—",
-      });
-
-      setRows(
-        [
-          ...mappedQueue,
-          ...(consult || []).map((item) => mapEncounter(item, "InConsultation")),
-          ...(pharmacy || []).map((item) => mapEncounter(item, "PharmacyPending")),
-        ].slice(0, 8)
-      );
-    }
-
-    void load();
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Live Patient Flow</CardTitle>
-        <Badge variant="live" className="flex items-center gap-1">
-          <Radio className="w-2.5 h-2.5" /> LIVE FEED
-        </Badge>
-      </CardHeader>
-
-      <Table className="min-w-[560px]">
-        <TableHeader>
-          <TableRow className="border-0 hover:bg-transparent">
-            <TableHead>Patient / Encounter</TableHead>
-            <TableHead>Case Type</TableHead>
-            <TableHead>Current Status</TableHead>
-            <TableHead>Time</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rows.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={4}>No active flow rows yet.</TableCell>
-            </TableRow>
-          )}
-          {rows.map((row) => (
-            <TableRow key={`${row.id}-${row.status}`}>
-              <TableCell>
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-full bg-[#dcdce0] shrink-0" />
-                  <div>
-                    <div className="font-semibold font-mono text-xs">
-                      {row.id.slice(0, 8)}
-                    </div>
-                    <div className="text-[11.5px] text-surface-muted">
-                      {row.name}
-                    </div>
-                  </div>
+            {/* Bottom Pagination Control Footer */}
+            <div className="bg-[#FAFAFA] border-t border-gray-200 p-3 px-4 flex justify-between items-center text-[11px] text-gray-500 font-medium rounded-b">
+                <span>Showing 4 of 32 active flows</span>
+                <div className="flex gap-1">
+                    <button className="w-6 h-6 border border-gray-300 rounded flex items-center justify-center bg-white hover:bg-gray-50 text-gray-400">‹</button>
+                    <button className="w-6 h-6 rounded flex items-center justify-center bg-[#2B2B2B] text-white font-bold">1</button>
+                    <button className="w-6 h-6 border border-gray-300 rounded flex items-center justify-center bg-white hover:bg-gray-50 text-gray-700">2</button>
+                    <button className="w-6 h-6 border border-gray-300 rounded flex items-center justify-center bg-white hover:bg-gray-50 text-gray-400">›</button>
                 </div>
-              </TableCell>
-              <TableCell>
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-1.5 text-[11.5px] font-semibold",
-                    row.type === "EMERGENCY" ? "text-brand-red" : "text-blue-500"
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "w-1.5 h-1.5 rounded-full",
-                      row.type === "EMERGENCY" ? "bg-brand-red" : "bg-blue-500"
-                    )}
-                  />
-                  {row.type}
-                </span>
-              </TableCell>
-              <TableCell>
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#c9c9cc]" />
-                  {row.status}
-                </span>
-              </TableCell>
-              <TableCell>{row.time}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-
-      <CardFooter>
-        <span>Showing {rows.length} active flows</span>
-        <div className="flex items-center gap-1.5">
-          <Button variant="outline" size="iconSm" aria-label="Previous page">
-            <ChevronLeft className="w-3.5 h-3.5" />
-          </Button>
-          <Button size="iconSm" className="text-[11px] font-medium">
-            1
-          </Button>
-          <Button variant="outline" size="iconSm" aria-label="Next page">
-            <ChevronRight className="w-3.5 h-3.5" />
-          </Button>
+            </div>
         </div>
-      </CardFooter>
-    </Card>
-  );
+    );
 }

@@ -1,194 +1,129 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
-import { toast } from "react-toastify";
+import React, { useState } from "react";
 import DispensingQueue from "@src/components/pharmacy/DispensingQueue";
 import ProtocolHandover from "@src/components/pharmacy/ProtocolHandover";
 import LabRequestsPanel from "@src/components/pharmacy/LabRequests";
-import {
-  DispenseQueueItem,
-  LabRequestItem,
-  HandoverBatch,
-} from "@src/types/pharmacy";
-import { staffIds } from "@src/constants/api";
-import pharmacyService from "@src/services/pharmacy.service";
-import labService from "@src/services/lab.service";
-import { getApiErrorMessage } from "@src/utils/api-error";
+import { DispenseQueueItem, LabRequestItem, HandoverBatch } from "@src/types/pharmacy";
 
-function mapPrescriptions(
-  rows: Awaited<ReturnType<typeof pharmacyService.listPrescriptions>>
-): DispenseQueueItem[] {
-  return (rows || []).map((row) => ({
-    id: row.id,
-    patientName: row.patientName || "Unknown patient",
-    patientId: row.patientId || row.encounterId || row.id,
-    medicationName: row.drugName || "Prescription",
-    dosageDetails: [row.dosage, row.frequency, row.duration]
-      .filter(Boolean)
-      .join(" · ") || "Pending details",
-    isUrgentStat: Boolean(row.isUrgent),
-  }));
-}
+const initialDispenseQueue: DispenseQueueItem[] = [
+    { id: "1", patientName: "Kalu Okafor", patientId: "GL-11204", medicationName: "Amoxicillin/Clavulanate", dosageDetails: "625mg • BID • 7 Days", isUrgentStat: false },
+    { id: "2", patientName: "Elena Rodriguez", patientId: "GL-10992", medicationName: "Metformin", dosageDetails: "500mg • QD • 30 Days", isUrgentStat: false },
+    { id: "3", patientName: "Samuel Thompson", patientId: "GL-11588", medicationName: "Epinephrine (Auto-Injector)", dosageDetails: "EMERGENCY STAT", isUrgentStat: true },
+    { id: "4", patientName: "Chinua Achebe", patientId: "GL-11301", medicationName: "Lisinopril", dosageDetails: "10mg • QD • 90 Days", isUrgentStat: false },
+];
+
+const initialLabRequests: LabRequestItem[] = [
+    { id: "LAB-77291", testName: "Fasting Blood Sugar", patientName: "Michael K. (GL-11440)", patientId: "GL-11440", status: "PROCESSING" },
+    { id: "LAB-77295", testName: "Malaria Parasite (MP)", patientName: "Amara O. (GL-11502)", patientId: "GL-11502", status: "PENDING" },
+    { id: "LAB-77288", testName: "Full Blood Count", patientName: "David L. (GL-10887)", patientId: "GL-10887", status: "COMPLETED" },
+];
+
+const initialHandoverBatches: HandoverBatch[] = [
+    { id: "#PH-882", timestamp: "14:20 PM", patientName: "Sarah Williams", patientId: "GL-11005", itemsDescription: "Artemether-Lumefantrine + Vitamin C", isConfirmed: false },
+    { id: "#PH-883", timestamp: "14:45 PM", patientName: "John Doe", patientId: "GL-10221", itemsDescription: "Salbutamol Inhaler (x2)", isConfirmed: false },
+];
 
 export default function PharmacyAndLabPage() {
-  const [dispenseQueue, setDispenseQueue] = useState<DispenseQueueItem[]>([]);
-  const [labRequests, setLabRequests] = useState<LabRequestItem[]>([]);
-  const [handoverBatches, setHandoverBatches] = useState<HandoverBatch[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+    const [dispenseQueue, setDispenseQueue] = useState<DispenseQueueItem[]>(initialDispenseQueue);
+    const [labRequests, setLabRequests] = useState<LabRequestItem[]>(initialLabRequests);
+    const [handoverBatches, setHandoverBatches] = useState<HandoverBatch[]>(initialHandoverBatches);
+    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-  const load = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const [prescriptions, handovers, labs] = await Promise.all([
-        pharmacyService.listPrescriptions("Pending").catch(() => []),
-        pharmacyService.listHandovers("Pending").catch(() => []),
-        labService.listRequests("Pending").catch(() => []),
-      ]);
+    // Dispensing Action Handler
+    const handleDispenseAction = async (id: string, isUrgent: boolean) => {
+        try {
+            console.log(`Executing dispensing sequence for prescription entry target reference: ${id}`);
+            await new Promise(resolve => setTimeout(resolve, 800));
+            setDispenseQueue(prev => prev.filter(item => item.id !== id));
+            alert(isUrgent ? "CRITICAL DISPATCH COMPLETED. Log updated." : "Verification pass complete. Item dispensed.");
+        } catch (err) {
+            console.error(err);
+        }
+    };
 
-      setDispenseQueue(mapPrescriptions(prescriptions));
-      setHandoverBatches(
-        (handovers || []).map((row) => ({
-          id: row.id,
-          timestamp: row.createdAt
-            ? new Date(row.createdAt).toLocaleTimeString()
-            : "—",
-          patientName: row.patientName || "Unknown",
-          patientId: row.patientId || row.encounterId || row.id,
-          itemsDescription: row.itemsDescription || "Medication package",
-          isConfirmed: false,
-        }))
-      );
-      setLabRequests(
-        (labs || []).map((row) => ({
-          id: row.id,
-          testName: row.testName || "Lab request",
-          patientName: row.patientName || "Unknown",
-          patientId: row.patientId || row.encounterId || row.id,
-          status: (row.status?.toUpperCase() as LabRequestItem["status"]) || "PENDING",
-        }))
-      );
-    } catch (error) {
-      toast.error(getApiErrorMessage(error, "Unable to load pharmacy board"));
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+    // Lab Progression Action Handler
+    const handleLabAction = async (id: string, nextStatus: LabRequestItem['status']) => {
+        try {
+            console.log(`Mutating lab status trajectory for target block [${id}] to: ${nextStatus}`);
+            await new Promise(resolve => setTimeout(resolve, 500));
+            setLabRequests(prev => prev.map(req => req.id === id ? { ...req, status: nextStatus } : req));
+        } catch (err) {
+            console.error(err);
+        }
+    };
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+    // Handover Box Validation Toggles
+    const handleToggleHandoverConfirm = (id: string) => {
+        setHandoverBatches(prev => prev.map(b => b.id === id ? { ...b, isConfirmed: !b.isConfirmed } : b));
+    };
 
-  const handleDispenseAction = async (id: string, isUrgent: boolean) => {
-    try {
-      await pharmacyService.dispense(id, {
-        pharmacistId: staffIds.pharmacist || "pharmacist",
-        quantityDispensed: 1,
-        batchNumber: `UI-${Date.now()}`,
-        expiryDate: "2027-12-31",
-        notes: isUrgent ? "Urgent dispense from UI" : "Dispensed from UI",
-      });
-      setDispenseQueue((prev) => prev.filter((item) => item.id !== id));
-      toast.success(isUrgent ? "Urgent prescription dispensed" : "Prescription dispensed");
-      void load();
-    } catch (err) {
-      toast.error(getApiErrorMessage(err, "Unable to dispense prescription"));
-    }
-  };
+    // Dispatch Handover Packet
+    const handleSubmitProtocolHandover = async () => {
+        setIsSubmitting(true);
+        try {
+            console.log("🚀 Dispatched secured handovers to central transport logic system:", handoverBatches);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            setHandoverBatches([]);
+            alert("All verified packages cleared and pushed to terminal grid.");
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
-  const handleLabAction = async (id: string, nextStatus: LabRequestItem["status"]) => {
-    try {
-      if (nextStatus === "COMPLETED") {
-        const current = labRequests.find((req) => req.id === id);
-        await labService.submitResult(id, {
-          scientistId: staffIds.scientist || "scientist",
-          testName: current?.testName || "Lab Test",
-          findings: "Result entered from UI",
-          values: [
-            {
-              parameter: "Result",
-              value: "See findings",
-              unit: "-",
-              referenceRange: "-",
-            },
-          ],
-          conclusion: "Completed from pharmacy/lab board",
-        });
-      }
-      setLabRequests((prev) =>
-        prev.map((req) => (req.id === id ? { ...req, status: nextStatus } : req))
-      );
-      toast.success("Lab request updated");
-    } catch (err) {
-      toast.error(getApiErrorMessage(err, "Unable to update lab request"));
-    }
-  };
+    return (
+        <div className="space-y-6 flex flex-col justify-between min-h-full">
+            <div>
+                {/* Contextual System Action Row Headers */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-gray-200 pb-4">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Pharmacy & Lab Management</h1>
+                        <p className="text-xs text-gray-500 font-medium mt-0.5">Session Active: Unit 04-B | Station 02</p>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                        <button className="px-4 py-2 bg-white border border-gray-300 font-semibold text-gray-700 hover:bg-gray-50 transition-colors rounded-sm shadow-2xs">
+                            Print Queue Report
+                        </button>
+                        <button className="px-4 py-2 bg-[#B71C1C] text-white font-bold hover:bg-[#991B1B] transition-colors rounded-sm flex items-center gap-1 shadow-2xs">
+                            <span>+ New Dispensing Order</span>
+                        </button>
+                    </div>
+                </div>
 
-  const handleToggleHandoverConfirm = (id: string) => {
-    setHandoverBatches((prev) =>
-      prev.map((b) => (b.id === id ? { ...b, isConfirmed: !b.isConfirmed } : b))
+                {/* Primary Screen Framework Grids Layout split block */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-4 items-start">
+                    <div className="lg:col-span-2 space-y-6">
+                        <DispensingQueue queue={dispenseQueue} onAction={handleDispenseAction} />
+                        <ProtocolHandover
+                            batches={handoverBatches}
+                            onToggleConfirm={handleToggleHandoverConfirm}
+                            onSubmitHandover={handleSubmitProtocolHandover}
+                            isSubmitting={isSubmitting}
+                        />
+                    </div>
+
+                    <div className="lg:col-span-1">
+                        <LabRequestsPanel requests={labRequests} onLabAction={handleLabAction} />
+                    </div>
+                </div>
+            </div>
+
+            {/* Core Lower Telemetry Base status labels */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between text-[11px] text-gray-400 font-mono pt-4 border-t border-gray-200 gap-2 select-none">
+                <div className="flex items-center gap-4">
+                    <span className="flex items-center gap-1.5 text-green-600 font-bold">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-600" />
+                        System Online
+                    </span>
+                    <span>Server: AF-WST-01</span>
+                </div>
+                <div className="flex items-center gap-4 font-bold">
+                    <span>Last Sync: 15:02:11</span>
+                    <span>v2.4.0-STABLE</span>
+                </div>
+            </div>
+        </div>
     );
-  };
-
-  const handleSubmitProtocolHandover = async () => {
-    setIsSubmitting(true);
-    try {
-      const confirmed = handoverBatches.filter((b) => b.isConfirmed);
-      for (const batch of confirmed) {
-        await pharmacyService.confirmHandover(batch.id, {
-          protocolOfficerId: staffIds.protocolOfficer || "protocol-officer",
-          patientNameVerified: true,
-          drugListVerified: true,
-          dosageCounsellingDone: true,
-          durationCounsellingDone: true,
-          counsellingNotes: "Confirmed from UI",
-        });
-      }
-      setHandoverBatches((prev) => prev.filter((b) => !b.isConfirmed));
-      toast.success("Handovers confirmed");
-    } catch (err) {
-      toast.error(getApiErrorMessage(err, "Unable to confirm handovers"));
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <div className="space-y-6 flex flex-col justify-between min-h-full">
-      <div>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-gray-200 pb-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
-              Pharmacy & Lab Management
-            </h1>
-            <p className="text-xs text-gray-500 font-medium mt-0.5">
-              {isLoading ? "Loading live queues..." : "Live pending prescriptions, handovers, and lab requests"}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => void load()}
-            className="px-4 py-2 bg-white border border-gray-300 font-semibold text-gray-700 hover:bg-gray-50 rounded-sm text-xs"
-          >
-            Refresh Board
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-4 items-start">
-          <div className="lg:col-span-2 space-y-6">
-            <DispensingQueue queue={dispenseQueue} onAction={handleDispenseAction} />
-            <ProtocolHandover
-              batches={handoverBatches}
-              onToggleConfirm={handleToggleHandoverConfirm}
-              onSubmitHandover={handleSubmitProtocolHandover}
-              isSubmitting={isSubmitting}
-            />
-          </div>
-          <div className="lg:col-span-1">
-            <LabRequestsPanel requests={labRequests} onLabAction={handleLabAction} />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 }

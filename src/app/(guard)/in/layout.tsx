@@ -1,7 +1,7 @@
-import Navbar from "@src/components/layouts/Navbar";
-import Sidebar from "@src/components/layouts/Sidebar";
-import { SidebarProvider } from "@src/components/layouts/SidebarContext";
-import React from "react";
+import Navbar from '@src/components/layouts/Navbar';
+import Sidebar from '@src/components/layouts/Sidebar';
+import React from 'react';
+
 
 function GuardLayout({
   children,
@@ -9,18 +9,24 @@ function GuardLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <SidebarProvider>
-      <div className="flex flex-col min-h-screen lg:h-screen bg-surface text-ink text-portal">
-        <Navbar />
+    <div className="flex flex-col flex-1 h-screen w-screen overflow-hidden bg-[#F4F4F4]">
 
-        <div className="flex flex-1 min-h-0 relative">
-          <Sidebar />
-          <main className="flex-1 min-w-0 overflow-y-auto p-4 sm:p-6 flex flex-col gap-5">
-            {children}
-          </main>
-        </div>
+      {/* Top contextual system tools */}
+      <Navbar />
+
+      {/* Main interface workspace */}
+      <div className="flex h-full overflow-hidden">
+        {/* Left-side Navigation panel */}
+        <Sidebar />
+
+        {/* Dynamic route viewports */}
+        <main className="flex-1 overflow-y-auto p-6">
+          {/* Top contextual system tools */}
+
+          {children}
+        </main>
       </div>
-    </SidebarProvider>
+    </div>
   );
 }
 

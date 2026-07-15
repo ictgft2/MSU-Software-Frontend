@@ -1,14 +1,12 @@
-import SignInAuthForm from "@src/components/auth-components/SignInAuthForm";
-import React, { Suspense } from "react";
+import SignInAuthForm from '@src/components/auth-components/SignInAuthForm'
+import React from 'react'
 
 function SignIn() {
   return (
     <div>
-      <Suspense fallback={<div className="p-5 text-sm text-gray-500">Loading...</div>}>
-        <SignInAuthForm />
-      </Suspense>
+      <SignInAuthForm/>
     </div>
-  );
+  )
 }
 
-export default SignIn;
+export default SignIn
