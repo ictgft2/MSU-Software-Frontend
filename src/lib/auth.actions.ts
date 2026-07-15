@@ -1,13 +1,10 @@
-import { SignUpParams } from "@src/types";
-import axios from 'axios'
+/**
+ * @deprecated Prefer domain services under @src/services.
+ * Kept as a thin re-export for any legacy imports.
+ */
+import authService from "@src/services/auth.service";
+import type { RegisterDTO } from "@src/dto/auth";
 
-export async function UserSignUp(params: SignUpParams) {
-    const {firstName, lastName, countryCode, phone, address, email, password} = params;
-
-    const payLoad = {firstName, lastName, countryCode, phone, address, email, password};
-
-    const res = axios.post("https://staging.api.msu.ftapp.ng/api/user/register", payLoad)
-
-    console.log(res);
-    
+export async function UserSignUp(params: RegisterDTO) {
+  return authService.register(params);
 }
