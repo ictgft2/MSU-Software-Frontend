@@ -1,3 +1,5 @@
+import type { PrescriptionStatus } from "./common";
+
 export interface PharmacyPrescription {
   id: string;
   encounterId?: string;
@@ -7,16 +9,18 @@ export interface PharmacyPrescription {
   dosage?: string;
   frequency?: string;
   duration?: string;
-  status?: string;
+  route?: string;
+  instructions?: string;
+  status?: PrescriptionStatus | string;
   isUrgent?: boolean;
 }
 
 export interface DispensePrescriptionDTO {
   pharmacistId: string;
   quantityDispensed: number;
-  batchNumber: string;
-  expiryDate: string;
-  notes?: string;
+  batchNumber?: string | null;
+  expiryDate?: string;
+  notes?: string | null;
 }
 
 export interface ProtocolHandover {
@@ -35,5 +39,5 @@ export interface ConfirmHandoverDTO {
   drugListVerified: boolean;
   dosageCounsellingDone: boolean;
   durationCounsellingDone: boolean;
-  counsellingNotes?: string;
+  counsellingNotes?: string | null;
 }

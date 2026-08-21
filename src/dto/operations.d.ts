@@ -18,17 +18,41 @@ export interface QueuePosition {
 
 export interface ServiceWindow {
   id?: string;
+  date?: string;
   isOpen?: boolean;
+  coldCaseOpenTime?: string;
+  coldCaseCloseTime?: string;
   opensAt?: string;
   closesAt?: string;
   label?: string;
   message?: string;
+  createdBy?: string;
+}
+
+export interface SetServiceWindowDTO {
+  date: string;
+  coldCaseOpenTime: string;
+  coldCaseCloseTime: string;
+  createdBy: string;
+}
+
+export interface UpdateServiceWindowDTO {
+  coldCaseOpenTime: string;
+  coldCaseCloseTime: string;
 }
 
 export interface DrugRegisterEntry {
   id?: string;
+  handoverId?: string;
+  encounterId?: string;
+  prescriptionId?: string;
   drugName?: string;
+  dosage?: string;
+  frequency?: string;
+  duration?: string;
   batchNumber?: string;
   quantity?: number;
+  quantityDispensed?: number;
   expiryDate?: string;
+  handoverAt?: string;
 }

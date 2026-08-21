@@ -12,6 +12,14 @@ import encountersService from "@src/services/encounters.service";
 import operationsService from "@src/services/operations.service";
 import pharmacyService from "@src/services/pharmacy.service";
 
+function todayIso() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function isEmergencyType(value?: string) {
+  return String(value || "").toLowerCase().includes("emergency");
+}
+
 export default function StatCards() {
   const [emergency, setEmergency] = useState("—");
   const [queued, setQueued] = useState("—");
@@ -20,26 +28,23 @@ export default function StatCards() {
 
   useEffect(() => {
     let active = true;
+    const date = todayIso();
 
     async function load() {
-      const [queue, consult, pharmacyPending, prescriptions] = await Promise.all([
-        operationsService.getQueue().catch(() => []),
-        encountersService.listByStatus("InConsultation").catch(() => []),
-        encountersService.listByStatus("PharmacyPending").catch(() => []),
-        pharmacyService.listPrescriptions("Pending").catch(() => []),
-      ]);
+      const [emergencies, queue, consult, pharmacyPending, prescriptions] =
+        await Promise.all([
+          encountersService.list({ type: "Emergency", date }).catch(() => []),
+          operationsService.getQueue().catch(() => []),
+          encountersService.list({ status: "InConsultation", date }).catch(() => []),
+          encountersService.list({ status: "PharmacyPending", date }).catch(() => []),
+          pharmacyService.listPrescriptions({ status: "Pending", date }).catch(() => []),
+        ]);
 
       if (!active) return;
 
-      const queueList = queue || [];
-      const emergencyCount = queueList.filter((item) =>
-        String(item.admissionType || "")
-          .toLowerCase()
-          .includes("emergency")
-      ).length;
-
-      setEmergency(String(emergencyCount).padStart(2, "0"));
-      setQueued(String(queueList.length).padStart(2, "0"));
+      const coldQueue = (queue || []).filter((item) => !isEmergencyType(item.admissionType));
+      setEmergency(String((emergencies || []).length).padStart(2, "0"));
+      setQueued(String(coldQueue.length).padStart(2, "0"));
       setInConsult(String((consult || []).length).padStart(2, "0"));
       setPharmacy(
         String(
@@ -57,28 +62,28 @@ export default function StatCards() {
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       <KpiCard
-        label="Active Emergency"
+        label="Emergency ward"
         value={emergency}
-        hint="Emergency cases in queue"
+        hint="Skip the waitlist"
         icon={HeartPulse}
         accent
       />
       <KpiCard
-        label="Cold Cases"
+        label="Cold-case queue"
         value={queued}
-        hint="Live queue size"
+        hint="Walk-ins waiting for doctor"
         icon={Bed}
       />
       <KpiCard
         label="In Consultation"
         value={inConsult}
-        hint="Active consult encounters"
+        hint="Today"
         icon={UserRoundCheck}
       />
       <KpiCard
-        label="Pharma/Lab Hub"
+        label="Pharmacy pending"
         value={pharmacy}
-        hint="Pharmacy pending"
+        hint="After consult"
         icon={FlaskConical}
       />
     </div>

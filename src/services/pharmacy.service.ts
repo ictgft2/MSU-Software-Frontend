@@ -4,6 +4,7 @@ import type {
   PharmacyPrescription,
   ProtocolHandover,
 } from "@src/dto/pharmacy";
+import type { DateStatusQuery } from "@src/dto/common";
 import { API_V1 } from "@src/constants/api";
 import http from "@src/services/http";
 import { asList, unwrapData } from "@src/services/service-utils";
@@ -14,10 +15,12 @@ class PharmacyService {
     throw normalizeApiError(err);
   }
 
-  async listPrescriptions(status = "Pending") {
+  async listPrescriptions(query: DateStatusQuery | string = { status: "Pending" }) {
     try {
+      const params =
+        typeof query === "string" ? { status: query } : query;
       const response = await http.get(`${API_V1}/pharmacy/prescriptions`, {
-        params: { status },
+        params,
       });
       return asList<PharmacyPrescription>(response.data);
     } catch (err) {
@@ -42,7 +45,7 @@ class PharmacyService {
         `${API_V1}/pharmacy/prescriptions/${prescriptionId}/dispense`,
         payload
       );
-      return unwrapData<unknown>(response.data);
+      return unwrapData<PharmacyPrescription>(response.data);
     } catch (err) {
       this.handleError(err);
     }
@@ -59,13 +62,24 @@ class PharmacyService {
     }
   }
 
+  async getHandover(handoverId: string) {
+    try {
+      const response = await http.get(
+        `${API_V1}/protocol/handovers/${handoverId}`
+      );
+      return unwrapData<ProtocolHandover>(response.data);
+    } catch (err) {
+      this.handleError(err);
+    }
+  }
+
   async confirmHandover(handoverId: string, payload: ConfirmHandoverDTO) {
     try {
       const response = await http.post(
         `${API_V1}/protocol/handovers/${handoverId}/confirm`,
         payload
       );
-      return unwrapData<unknown>(response.data);
+      return unwrapData<ProtocolHandover>(response.data);
     } catch (err) {
       this.handleError(err);
     }

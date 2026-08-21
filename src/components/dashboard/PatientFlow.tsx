@@ -38,27 +38,32 @@ export default function PatientFlow() {
     let active = true;
 
     async function load() {
-      const [queue, consult, pharmacy] = await Promise.all([
+      const [queue, emergencies, consult, pharmacy] = await Promise.all([
         operationsService.getQueue().catch(() => []),
-        encountersService.listByStatus("InConsultation").catch(() => []),
-        encountersService.listByStatus("PharmacyPending").catch(() => []),
+        encountersService.list({ type: "Emergency" }).catch(() => []),
+        encountersService.list({ status: "InConsultation" }).catch(() => []),
+        encountersService.list({ status: "PharmacyPending" }).catch(() => []),
       ]);
 
       if (!active) return;
 
-      const mappedQueue: FlowRow[] = (queue || []).map((item) => ({
-        id: item.encounterId || item.id || "—",
-        name: item.patientName || item.fullName || "Patient",
-        type: String(item.admissionType || "")
-          .toLowerCase()
-          .includes("emergency")
-          ? "EMERGENCY"
-          : "COLD",
-        status: item.status || "Queued",
-        time: item.estimatedWaitMinutes != null
-          ? `~${item.estimatedWaitMinutes}m`
-          : "—",
-      }));
+      const mappedQueue: FlowRow[] = (queue || [])
+        .filter(
+          (item) =>
+            !String(item.admissionType || "")
+              .toLowerCase()
+              .includes("emergency")
+        )
+        .map((item) => ({
+          id: item.encounterId || item.id || "—",
+          name: item.patientName || item.fullName || "Patient",
+          type: "COLD" as const,
+          status: item.status || "Queued",
+          time:
+            item.estimatedWaitMinutes != null
+              ? `~${item.estimatedWaitMinutes}m`
+              : "—",
+        }));
 
       const mapEncounter = (item: Encounter, fallbackStatus: string): FlowRow => ({
         id: item.id,
@@ -72,11 +77,21 @@ export default function PatientFlow() {
         time: item.createdAt ? new Date(item.createdAt).toLocaleTimeString() : "—",
       });
 
+      const isEmergencyEncounter = (item: Encounter) =>
+        String(item.admissionType || "")
+          .toLowerCase()
+          .includes("emergency");
+
       setRows(
         [
+          ...(emergencies || []).map((item) => mapEncounter(item, "Admitted")),
           ...mappedQueue,
-          ...(consult || []).map((item) => mapEncounter(item, "InConsultation")),
-          ...(pharmacy || []).map((item) => mapEncounter(item, "PharmacyPending")),
+          ...(consult || [])
+            .filter((item) => !isEmergencyEncounter(item))
+            .map((item) => mapEncounter(item, "InConsultation")),
+          ...(pharmacy || [])
+            .filter((item) => !isEmergencyEncounter(item))
+            .map((item) => mapEncounter(item, "PharmacyPending")),
         ].slice(0, 8)
       );
     }

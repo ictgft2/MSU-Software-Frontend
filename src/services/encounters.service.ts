@@ -1,5 +1,7 @@
 import type {
   ConsultationRecord,
+  ContactTrace,
+  ContactTraceDTO,
   CreateConsultationDTO,
   Encounter,
   EncounterVitals,
@@ -7,7 +9,7 @@ import type {
   RecordVitalsDTO,
   UpdateEncounterStatusDTO,
 } from "@src/dto/encounter";
-import type { EncounterStatus } from "@src/dto/common";
+import type { EncounterListQuery, EncounterStatus } from "@src/dto/common";
 import { API_V1 } from "@src/constants/api";
 import http from "@src/services/http";
 import { asList, unwrapData } from "@src/services/service-utils";
@@ -36,15 +38,19 @@ class EncountersService {
     }
   }
 
-  async listByStatus(status: EncounterStatus) {
+  async list(query: EncounterListQuery = {}) {
     try {
       const response = await http.get(`${API_V1}/encounters`, {
-        params: { status },
+        params: query,
       });
       return asList<Encounter>(response.data);
     } catch (err) {
       this.handleError(err);
     }
+  }
+
+  async listByStatus(status: EncounterStatus) {
+    return this.list({ status });
   }
 
   async updateStatus(encounterId: string, payload: UpdateEncounterStatusDTO) {
@@ -54,6 +60,17 @@ class EncountersService {
         payload
       );
       return unwrapData<Encounter>(response.data);
+    } catch (err) {
+      this.handleError(err);
+    }
+  }
+
+  async getVitals(encounterId: string) {
+    try {
+      const response = await http.get(
+        `${API_V1}/encounters/${encounterId}/vitals`
+      );
+      return asList<EncounterVitals>(response.data);
     } catch (err) {
       this.handleError(err);
     }
@@ -110,7 +127,31 @@ class EncountersService {
       const response = await http.get(
         `${API_V1}/encounters/${encounterId}/contact-trace`
       );
-      return unwrapData<unknown>(response.data);
+      return unwrapData<ContactTrace>(response.data);
+    } catch (err) {
+      this.handleError(err);
+    }
+  }
+
+  async createContactTrace(encounterId: string, payload: ContactTraceDTO) {
+    try {
+      const response = await http.post(
+        `${API_V1}/encounters/${encounterId}/contact-trace`,
+        payload
+      );
+      return unwrapData<ContactTrace>(response.data);
+    } catch (err) {
+      this.handleError(err);
+    }
+  }
+
+  async updateContactTrace(encounterId: string, payload: ContactTraceDTO) {
+    try {
+      const response = await http.patch(
+        `${API_V1}/encounters/${encounterId}/contact-trace`,
+        payload
+      );
+      return unwrapData<ContactTrace>(response.data);
     } catch (err) {
       this.handleError(err);
     }

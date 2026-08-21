@@ -1,75 +1,90 @@
 "use client";
 
-import React, { useCallback, useEffect, useState, ChangeEvent } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Clock, RefreshCw, ShieldCheck } from "lucide-react";
 import { toast } from "react-toastify";
 import PatientBanner from "@src/components/consultation/PatientBanner";
 import VitalTelemetry from "@src/components/consultation/VitalTelemetry";
-import ConsultationWorkspace from "@src/components/consultation/ConsultationWorkspace";
-import {
-  SoapNotes,
-  MedicationPrescription,
-  DiagnosticOrders,
-  VitalMetrics,
-  PatientHeaderInfo,
-} from "@src/types/consultation";
-import { staffIds } from "@src/constants/api";
-import type { Encounter } from "@src/dto/encounter";
+import { VitalMetrics, PatientHeaderInfo } from "@src/types/consultation";
+import type { Encounter, EncounterVitals } from "@src/dto/encounter";
+import type { DressingOrder } from "@src/dto/lab";
+import { requireStaffId } from "@src/utils/staff";
 import encountersService from "@src/services/encounters.service";
+import patientsService from "@src/services/patients.service";
+import operationsService from "@src/services/operations.service";
+import labService from "@src/services/lab.service";
 import { getApiErrorMessage } from "@src/utils/api-error";
 
-const initialSoap: SoapNotes = {
-  subjective: "",
-  objective: "",
-  assessment: "",
-  plan: "",
+const emptyVitals: VitalMetrics = {
+  bloodPressureSystolic: "",
+  bloodPressureDiastolic: "",
+  pulseRate: "",
+  temperatureCelsius: "",
+  weightKg: "",
+  spo2: "",
+  respiratoryRate: "",
+  notes: "",
 };
 
-const initialPrescriptions: MedicationPrescription[] = [
-  {
-    id: "p-1",
-    name: "Paracetamol",
-    dosage: "500 mg",
-    durationDays: 3,
-  },
-];
+function toNumber(value: number | "") {
+  return value === "" ? null : value;
+}
+
+function isEmergencyEncounter(item: Encounter) {
+  return String(item.admissionType || "").toLowerCase().includes("emergency");
+}
 
 export default function NursesStationPage() {
-  const [encounters, setEncounters] = useState<Encounter[]>([]);
+  const [bpQueue, setBpQueue] = useState<Encounter[]>([]);
+  const [emergencyQueue, setEmergencyQueue] = useState<Encounter[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
   const [patient, setPatient] = useState<PatientHeaderInfo | null>(null);
-  const [vitals, setVitals] = useState<VitalMetrics | null>(null);
-  const [soapNotes, setSoapNotes] = useState<SoapNotes>(initialSoap);
-  const [prescriptions, setPrescriptions] =
-    useState<MedicationPrescription[]>(initialPrescriptions);
-  const [diagnostics, setDiagnostics] = useState<DiagnosticOrders>({
-    cbc: false,
-    lipidProfile: false,
-    ecg12Lead: false,
-    kft: false,
-    additionalInstructions: "",
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [encounter, setEncounter] = useState<Encounter | null>(null);
+  const [vitals, setVitals] = useState<VitalMetrics>(emptyVitals);
+  const [vitalsHistory, setVitalsHistory] = useState<EncounterVitals[]>([]);
+  const [dressingOrders, setDressingOrders] = useState<DressingOrder[]>([]);
+  const [selectedDressing, setSelectedDressing] = useState<DressingOrder | null>(null);
+  const [procedureNotes, setProcedureNotes] = useState("");
 
   const loadBoard = useCallback(async () => {
     try {
-      const [inConsult, queued] = await Promise.all([
-        encountersService.listByStatus("InConsultation").catch(() => []),
-        encountersService.listByStatus("Queued").catch(() => []),
+      const [bp, admitted, inTreatment, emergencies] = await Promise.all([
+        encountersService.listByStatus("BpCheck").catch(() => []),
+        encountersService.listByStatus("Admitted").catch(() => []),
+        encountersService.listByStatus("InTreatment").catch(() => []),
+        encountersService.list({ type: "Emergency" }).catch(() => []),
       ]);
-      const list = [...(inConsult || []), ...(queued || [])];
-      setEncounters(list);
-      if (!selectedId && list[0]?.id) {
-        setSelectedId(list[0].id);
-      }
+      const bpList = (bp || []).filter((item) => !isEmergencyEncounter(item));
+      const emergencyMap = new Map<string, Encounter>();
+      [...(admitted || []), ...(inTreatment || []), ...(emergencies || [])]
+        .filter(isEmergencyEncounter)
+        .forEach((item) => emergencyMap.set(item.id, item));
+      const emergencyList = Array.from(emergencyMap.values());
+      setBpQueue(bpList);
+      setEmergencyQueue(emergencyList);
+      const first = bpList[0]?.id || emergencyList[0]?.id;
+      if (!selectedId && first) setSelectedId(first);
     } catch (error) {
-      toast.error(getApiErrorMessage(error, "Unable to load encounters"));
+      toast.error(getApiErrorMessage(error, "Unable to load nurse board"));
     }
   }, [selectedId]);
 
+  const loadDressing = useCallback(async () => {
+    try {
+      const [pending, inProgress] = await Promise.all([
+        labService.listDressingOrders("Pending").catch(() => []),
+        labService.listDressingOrders("InProgress").catch(() => []),
+      ]);
+      setDressingOrders([...(pending || []), ...(inProgress || [])]);
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Unable to load dressing orders"));
+    }
+  }, []);
+
   useEffect(() => {
     void loadBoard();
-  }, [loadBoard]);
+    void loadDressing();
+  }, [loadBoard, loadDressing]);
 
   useEffect(() => {
     if (!selectedId) return;
@@ -79,36 +94,67 @@ export default function NursesStationPage() {
       try {
         const detail = await encountersService.getById(selectedId);
         if (!active) return;
-        setPatient({
+        setEncounter(detail);
+
+        let header: PatientHeaderInfo = {
           id: detail.patientId || detail.id,
           name: detail.patientName || detail.fullName || "Patient",
           dob: "—",
           age: 0,
           gender: "Other",
           bloodType: "—",
+          phone: "—",
           lastVisit: detail.createdAt
             ? new Date(detail.createdAt).toLocaleDateString()
             : "—",
-        });
-        setSoapNotes({
-          subjective: detail.chiefComplaint || "",
-          objective: "",
-          assessment: "",
-          plan: "",
-        });
+        };
+        if (detail.patientId) {
+          try {
+            const person = await patientsService.getById(detail.patientId);
+            if (person) {
+              header = {
+                ...header,
+                id: person.id,
+                name: person.fullName || header.name,
+                age: person.age || 0,
+                gender:
+                  person.sex === "M" ? "Male" : person.sex === "F" ? "Female" : "Other",
+                phone: person.phone || "—",
+              };
+            }
+          } catch {
+            // Encounter still usable without patient profile.
+          }
+        }
+        if (!active) return;
+        setPatient(header);
+
+        try {
+          const history = await encountersService.getVitals(selectedId);
+          if (active) setVitalsHistory(history || []);
+        } catch {
+          if (active) setVitalsHistory([]);
+        }
 
         try {
           const latest = await encountersService.getLatestVitals(selectedId);
-          if (!active || !latest) return;
+          if (!active) return;
+          if (!latest) {
+            setVitals(emptyVitals);
+            return;
+          }
           setVitals({
-            bloodPressure: `${latest.bloodPressureSystolic ?? "—"}/${latest.bloodPressureDiastolic ?? "—"}`,
-            temperatureCelsius: latest.temperature ?? 0,
-            weightKg: latest.weight ?? 0,
-            bmi: 0,
-            o2SaturationPercent: latest.spo2 ?? 0,
+            bloodPressureSystolic: latest.bloodPressureSystolic ?? "",
+            bloodPressureDiastolic: latest.bloodPressureDiastolic ?? "",
+            pulseRate: latest.pulseRate ?? "",
+            temperatureCelsius: latest.temperature ?? "",
+            weightKg: latest.weight ?? "",
+            spo2: latest.spo2 ?? "",
+            respiratoryRate: latest.respiratoryRate ?? "",
+            notes: latest.notes || "",
           });
         } catch {
-          setVitals(null);
+          if (active) setVitals(emptyVitals);
         }
       } catch (error) {
         toast.error(getApiErrorMessage(error, "Unable to load encounter"));
@@ -121,119 +167,86 @@ export default function NursesStationPage() {
     };
   }, [selectedId]);
 
-  const handleSoapChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setSoapNotes((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleAddDrug = () => {
-    setPrescriptions((prev) => [
-      ...prev,
-      {
-        id: `p-${Date.now()}`,
-        name: "New medication",
-        dosage: "1 tab",
-        durationDays: 5,
-      },
-    ]);
-  };
-
-  const handleRemoveDrug = (id: string) => {
-    setPrescriptions((prev) => prev.filter((d) => d.id !== id));
-  };
-
-  const handleDiagnosticToggle = (
-    field: keyof Omit<DiagnosticOrders, "additionalInstructions">
-  ) => {
-    setDiagnostics((prev) => ({ ...prev, [field]: !prev[field] }));
-  };
-
-  const handleInstructionsChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
-    setDiagnostics((prev) => ({
-      ...prev,
-      additionalInstructions: e.target.value,
-    }));
-  };
-
   const handleSaveVitals = async () => {
     if (!selectedId) return;
     try {
       await encountersService.recordVitals(selectedId, {
-        recordedBy: staffIds.nurse || "nurse",
-        bloodPressureSystolic: 120,
-        bloodPressureDiastolic: 80,
-        pulseRate: 78,
-        temperature: vitals?.temperatureCelsius || 36.8,
-        spo2: vitals?.o2SaturationPercent || 98,
-        respiratoryRate: 18,
-        weight: vitals?.weightKg || 70,
-        notes: "Recorded from nurses station",
+        recordedBy: requireStaffId("nurse", "recordedBy"),
+        bloodPressureSystolic: toNumber(vitals.bloodPressureSystolic),
+        bloodPressureDiastolic: toNumber(vitals.bloodPressureDiastolic),
+        pulseRate: toNumber(vitals.pulseRate),
+        temperature: toNumber(vitals.temperatureCelsius),
+        spo2: toNumber(vitals.spo2),
+        respiratoryRate: toNumber(vitals.respiratoryRate),
+        weight: toNumber(vitals.weightKg),
+        notes: vitals.notes || null,
       });
+      const history = await encountersService.getVitals(selectedId).catch(() => []);
+      setVitalsHistory(history || []);
       toast.success("Vitals recorded");
     } catch (error) {
       toast.error(getApiErrorMessage(error, "Unable to record vitals"));
     }
   };
 
-  const handleFinalizeConsultation = async (isDraft: boolean) => {
-    if (!selectedId) {
-      toast.error("Select an encounter first");
-      return;
-    }
-    setIsSubmitting(true);
+  const sendToDoctorQueue = async () => {
+    if (!selectedId) return;
     try {
-      const labTests: string[] = [];
-      if (diagnostics.cbc) labTests.push("Full Blood Count");
-      if (diagnostics.lipidProfile) labTests.push("Lipid Profile");
-      if (diagnostics.ecg12Lead) labTests.push("ECG 12-Lead");
-      if (diagnostics.kft) labTests.push("Kidney Function Test");
-
-      await encountersService.createConsultation(selectedId, {
-        doctorId: staffIds.doctor || "doctor",
-        diagnosis: [soapNotes.assessment || "Clinical review"].filter(Boolean),
-        clinicalNotes: [
-          soapNotes.subjective,
-          soapNotes.objective,
-          soapNotes.plan,
-          isDraft ? "[DRAFT]" : "",
-        ]
-          .filter(Boolean)
-          .join("\n\n"),
-        treatmentPlan: {
-          prescriptions: prescriptions.map((rx) => ({
-            drugName: rx.name,
-            dosage: rx.dosage,
-            frequency: "As directed",
-            duration: `${rx.durationDays} days`,
-            route: "Oral",
-            instructions: "Take as prescribed",
-          })),
-          labTests,
-          requiresDressing: false,
-          dressingInstructions: null,
-          isReferral: false,
-          referralFacility: null,
-          referralReason: null,
-        },
-      });
-
-      toast.success(isDraft ? "Consultation draft saved" : "Consultation submitted");
+      await handleSaveVitals();
+      try {
+        await encountersService.updateStatus(selectedId, { status: "Queued" });
+      } catch {
+        // Status may 500.
+      }
+      try {
+        await operationsService.joinQueue(selectedId);
+      } catch {
+        // Queue may 500.
+      }
+      toast.success("BP recorded. Patient sent to the doctor queue.");
+      setSelectedId("");
       void loadBoard();
-    } catch (err) {
-      toast.error(getApiErrorMessage(err, "Unable to save consultation"));
-    } finally {
-      setIsSubmitting(false);
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Unable to send to queue"));
     }
   };
+
+  const openDressing = async (orderId: string) => {
+    try {
+      const order = await labService.getDressingOrder(orderId);
+      setSelectedDressing(order);
+      setProcedureNotes("");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Unable to load dressing order"));
+    }
+  };
+
+  const completeDressing = async () => {
+    if (!selectedDressing) return;
+    try {
+      await labService.completeDressing(selectedDressing.id, {
+        performedBy: requireStaffId("dressingNurse", "performedBy"),
+        procedureNotes: procedureNotes || null,
+      });
+      toast.success("Dressing / injection completed");
+      setSelectedDressing(null);
+      void loadDressing();
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Unable to complete dressing"));
+    }
+  };
+
+  const isBpCase = encounter?.status === "BpCheck";
+  const isEmergency = encounter ? isEmergencyEncounter(encounter) : false;
 
   return (
     <div className="space-y-6 flex flex-col justify-between min-h-full">
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
           <div>
-            <h1 className="text-xl font-bold">Nurses / Consultation Station</h1>
+            <h1 className="text-xl font-bold">Nurses Station</h1>
             <p className="text-xs text-surface-muted">
-              Select an encounter, record vitals, then submit consultation
+              BP check for cold cases over 40, emergency vitals, and dressing / injection
             </p>
           </div>
           <select
@@ -242,64 +255,132 @@ export default function NursesStationPage() {
             className="border border-surface-border rounded-lg px-3 py-2 text-sm bg-white min-w-[240px]"
           >
             <option value="">Select encounter</option>
-            {encounters.map((item) => (
-              <option key={item.id} value={item.id}>
-                {(item.patientName || item.fullName || item.id.slice(0, 8)) +
-                  ` · ${item.status || "—"}`}
-              </option>
-            ))}
+            {bpQueue.length > 0 && (
+              <optgroup label="BP desk (age over 40)">
+                {bpQueue.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {(item.patientName || item.fullName || item.id.slice(0, 8)) + " · BP"}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {emergencyQueue.length > 0 && (
+              <optgroup label="Emergency ward">
+                {emergencyQueue.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {(item.patientName || item.fullName || item.id.slice(0, 8)) + " · Emergency"}
+                  </option>
+                ))}
+              </optgroup>
+            )}
           </select>
         </div>
 
         <PatientBanner patient={patient || undefined} />
-        <VitalTelemetry vitals={vitals || undefined} />
-        <button
-          type="button"
-          onClick={() => void handleSaveVitals()}
-          className="px-4 py-2 text-xs font-bold uppercase border border-gray-300 rounded-sm hover:bg-gray-50"
-        >
-          Record Vitals Snapshot
-        </button>
-
-        <ConsultationWorkspace
-          soapNotes={soapNotes}
-          onSoapNotesChange={handleSoapChange}
-          prescriptions={prescriptions}
-          onAddPrescription={handleAddDrug}
-          onRemovePrescription={handleRemoveDrug}
-          diagnostics={diagnostics}
-          onDiagnosticToggle={handleDiagnosticToggle}
-          onInstructionsChange={handleInstructionsChange}
-        />
-
-        <div className="flex gap-4 justify-end pt-2">
+        <VitalTelemetry vitals={vitals} onChange={setVitals} />
+        <div className="flex flex-wrap gap-3">
           <button
             type="button"
-            disabled={isSubmitting}
-            onClick={() => void handleFinalizeConsultation(true)}
-            className="px-6 py-3 bg-[#E5E7EB] hover:bg-gray-300 text-gray-700 font-bold text-xs uppercase rounded-sm disabled:opacity-50"
+            onClick={() => void handleSaveVitals()}
+            className="px-4 py-2 text-xs font-bold uppercase border border-gray-300 rounded-sm hover:bg-gray-50"
           >
-            Save Draft
+            Record vitals
           </button>
-          <button
-            type="button"
-            disabled={isSubmitting}
-            onClick={() => void handleFinalizeConsultation(false)}
-            className="px-10 py-3 bg-[#B71C1C] hover:bg-[#991B1B] text-white font-black text-xs uppercase rounded-sm disabled:bg-gray-400"
-          >
-            {isSubmitting ? "Submitting..." : "Finalize Consultation"}
-          </button>
+          {isBpCase && (
+            <button
+              type="button"
+              onClick={() => void sendToDoctorQueue()}
+              className="px-4 py-2 text-xs font-bold uppercase bg-[#B71C1C] text-white rounded-sm hover:bg-[#991B1B]"
+            >
+              BP done — join doctor queue
+            </button>
+          )}
+          {isEmergency && (
+            <span className="self-center text-[11px] font-bold uppercase text-[#C62828]">
+              Emergency — vitals only, no queue
+            </span>
+          )}
+        </div>
+
+        {vitalsHistory.length > 0 && (
+          <div className="text-[11px] text-gray-500">
+            History:{" "}
+            {vitalsHistory
+              .slice(0, 5)
+              .map(
+                (row) =>
+                  `${row.bloodPressureSystolic ?? "—"}/${row.bloodPressureDiastolic ?? "—"} @ ${
+                    row.recordedAt ? new Date(row.recordedAt).toLocaleTimeString() : "—"
+                  }`
+              )
+              .join(" · ")}
+          </div>
+        )}
+
+        <div className="bg-white border border-gray-200 rounded-sm p-4 space-y-3">
+          <h3 className="text-sm font-bold">Dressing / injection</h3>
+          {dressingOrders.length === 0 && (
+            <p className="text-xs text-gray-400">No pending dressing or injection orders.</p>
+          )}
+          {dressingOrders.map((order) => (
+            <div key={order.id} className="flex items-center justify-between text-xs border-b py-2">
+              <div>
+                <div className="font-bold">{order.patientName || order.id.slice(0, 8)}</div>
+                <div className="text-gray-400">{order.instructions || order.status}</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => void openDressing(order.id)}
+                className="px-3 py-1 bg-[#2D3134] text-white rounded-sm uppercase text-[10px] font-bold"
+              >
+                Open
+              </button>
+            </div>
+          ))}
+          {selectedDressing && (
+            <div className="space-y-2 pt-2">
+              <p className="text-xs font-semibold">
+                Completing {selectedDressing.patientName || selectedDressing.id.slice(0, 8)}
+              </p>
+              <textarea
+                value={procedureNotes}
+                onChange={(e) => setProcedureNotes(e.target.value)}
+                rows={3}
+                placeholder="Procedure notes"
+                className="w-full p-2.5 border border-gray-200 rounded-sm text-sm"
+              />
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setSelectedDressing(null)}
+                  className="px-3 py-1 border rounded-sm text-[10px] font-bold uppercase"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void completeDressing()}
+                  className="px-3 py-1 bg-[#B71C1C] text-white rounded-sm text-[10px] font-bold uppercase"
+                >
+                  Complete
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between text-[11px] text-gray-500 font-mono pt-4 border-t border-gray-200 gap-2">
         <div className="flex items-center gap-4">
           <span className="flex items-center gap-1">
-            <Clock size={12} /> Encounter-linked workflow
+            <Clock size={12} /> BP · emergency vitals · dressing
           </span>
           <button
             type="button"
-            onClick={() => void loadBoard()}
+            onClick={() => {
+              void loadBoard();
+              void loadDressing();
+            }}
             className="flex items-center gap-1 hover:text-gray-800"
           >
             <RefreshCw size={12} /> Refresh board
@@ -307,7 +388,7 @@ export default function NursesStationPage() {
         </div>
         <div className="flex items-center gap-1.5 text-amber-700 bg-amber-50/50 border border-amber-200/50 px-2 py-0.5 font-sans font-bold">
           <ShieldCheck size={12} />
-          Uses /encounters/:id/vitals and /consultation
+          Doctors own consultation
         </div>
       </div>
     </div>

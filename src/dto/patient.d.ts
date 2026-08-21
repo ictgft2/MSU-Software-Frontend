@@ -1,9 +1,9 @@
 export interface RegisterPatientDTO {
-  fullName: string;
+  fullName?: string | null;
   age: number;
-  sex: string;
-  phone: string;
-  address: string;
+  sex?: string | null;
+  phone?: string | null;
+  address?: string | null;
   nextOfKinName: string;
   nextOfKinPhone: string;
   nextOfKinRelationship: string;

@@ -1,10 +1,15 @@
-import type { AdmissionType, ArrivalMode, EncounterStatus } from "./common";
+import type {
+  AdmissionType,
+  ArrivalMode,
+  DrugRoute,
+  EncounterStatus,
+} from "./common";
 
 export interface OpenEncounterDTO {
   patientId: string;
   admissionType: AdmissionType;
   arrivalMode: ArrivalMode;
-  chiefComplaint: string;
+  chiefComplaint?: string | null;
   registeredBy: string;
 }
 
@@ -28,42 +33,48 @@ export interface Encounter {
 
 export interface RecordVitalsDTO {
   recordedBy: string;
-  bloodPressureSystolic: number;
-  bloodPressureDiastolic: number;
-  pulseRate: number;
-  temperature: number;
-  spo2: number;
-  respiratoryRate: number;
-  weight: number;
-  notes?: string;
+  bloodPressureSystolic?: number | null;
+  bloodPressureDiastolic?: number | null;
+  pulseRate?: number | null;
+  temperature?: number | null;
+  spo2?: number | null;
+  respiratoryRate?: number | null;
+  weight?: number | null;
+  notes?: string | null;
 }
 
 export interface EncounterVitals {
   id?: string;
   encounterId?: string;
-  bloodPressureSystolic?: number;
-  bloodPressureDiastolic?: number;
-  pulseRate?: number;
-  temperature?: number;
-  spo2?: number;
-  respiratoryRate?: number;
-  weight?: number;
-  notes?: string;
+  recordedBy?: string;
+  bloodPressureSystolic?: number | null;
+  bloodPressureDiastolic?: number | null;
+  pulseRate?: number | null;
+  temperature?: number | null;
+  spo2?: number | null;
+  respiratoryRate?: number | null;
+  weight?: number | null;
+  notes?: string | null;
   recordedAt?: string;
 }
 
 export interface PrescriptionLineDTO {
-  drugName: string;
-  dosage: string;
-  frequency: string;
-  duration: string;
-  route: string;
-  instructions?: string;
+  drugName?: string | null;
+  dosage?: string | null;
+  frequency?: string | null;
+  duration?: string | null;
+  route?: DrugRoute;
+  instructions?: string | null;
+}
+
+export interface LabTestPlanDTO {
+  testName?: string | null;
+  clinicalIndication?: string | null;
 }
 
 export interface TreatmentPlanDTO {
-  prescriptions: PrescriptionLineDTO[];
-  labTests: string[];
+  prescriptions?: PrescriptionLineDTO[] | null;
+  labTests?: LabTestPlanDTO[] | null;
   requiresDressing: boolean;
   dressingInstructions?: string | null;
   isReferral: boolean;
@@ -73,9 +84,9 @@ export interface TreatmentPlanDTO {
 
 export interface CreateConsultationDTO {
   doctorId: string;
-  diagnosis: string[];
-  clinicalNotes: string;
-  treatmentPlan: TreatmentPlanDTO;
+  diagnosis?: string[] | null;
+  clinicalNotes?: string | null;
+  treatmentPlan?: TreatmentPlanDTO;
 }
 
 export interface ConsultationRecord {
@@ -85,4 +96,22 @@ export interface ConsultationRecord {
   diagnosis?: string[];
   clinicalNotes?: string;
   treatmentPlan?: TreatmentPlanDTO;
+}
+
+export interface ContactTraceDTO {
+  recordedBy: string;
+  nextOfKinName?: string | null;
+  nextOfKinPhone?: string | null;
+  nextOfKinRelationship?: string | null;
+  residentialAddress?: string | null;
+  workplaceAddress?: string | null;
+  dischargeNotes?: string | null;
+  referralDestination?: string | null;
+}
+
+export interface ContactTrace extends ContactTraceDTO {
+  id?: string;
+  encounterId?: string;
+  recordedAt?: string;
+  updatedAt?: string;
 }

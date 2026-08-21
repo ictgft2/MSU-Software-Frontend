@@ -1,4 +1,5 @@
 import type { Patient, RegisterPatientDTO } from "@src/dto/patient";
+import type { PatientSearchQuery } from "@src/dto/common";
 import { API_V1 } from "@src/constants/api";
 import http from "@src/services/http";
 import { asList, unwrapData } from "@src/services/service-utils";
@@ -27,15 +28,19 @@ class PatientsService {
     }
   }
 
-  async searchByName(name: string) {
+  async search(query: PatientSearchQuery) {
     try {
       const response = await http.get(`${API_V1}/patients/search`, {
-        params: { name },
+        params: query,
       });
       return asList<Patient>(response.data);
     } catch (err) {
       this.handleError(err);
     }
+  }
+
+  async searchByName(name: string) {
+    return this.search({ name });
   }
 }
 

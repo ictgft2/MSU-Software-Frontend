@@ -5,76 +5,101 @@ import { Layers, Send } from "lucide-react";
 import { HandoverBatch } from "@src/types/pharmacy";
 
 interface ProtocolHandoverProps {
-    batches: HandoverBatch[];
-    onToggleConfirm: (id: string) => void;
-    onSubmitHandover: () => Promise<void>;
-    isSubmitting: boolean;
+  batches: HandoverBatch[];
+  onToggle: (id: string, field: keyof HandoverBatch) => void;
+  onNotesChange: (id: string, notes: string) => void;
+  onSubmitHandover: () => Promise<void>;
+  isSubmitting: boolean;
 }
 
 export default function ProtocolHandover({
-    batches,
-    onToggleConfirm,
-    onSubmitHandover,
-    isSubmitting,
+  batches,
+  onToggle,
+  onNotesChange,
+  onSubmitHandover,
+  isSubmitting,
 }: ProtocolHandoverProps) {
-    const allConfirmed = batches.every(b => b.isConfirmed) && batches.length > 0;
+  const ready = batches.filter(
+    (b) =>
+      b.patientNameVerified &&
+      b.drugListVerified &&
+      b.dosageCounsellingDone &&
+      b.durationCounsellingDone
+  );
+  const canSubmit = ready.length > 0;
 
-    return (
-        <div className="bg-white border border-gray-200 rounded-sm shadow-2xs p-4 space-y-4">
-            {/* Section Header */}
-            <div className="flex justify-between items-center border-b border-gray-100 pb-3">
-                <div className="flex items-center gap-2 text-xs font-bold text-gray-800 uppercase tracking-wider">
-                    <Layers size={14} />
-                    <span>Ready For Protocol Handover</span>
-                </div>
-                <span className="bg-gray-800 text-white text-[9px] font-extrabold px-2 py-0.5 rounded-sm">
-                    {batches.length} SECURED BATCHES
-                </span>
-            </div>
-
-            {/* Grid Sub-items list layout */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {batches.map((batch) => (
-                    <div key={batch.id} className="border border-gray-200 rounded-sm p-4 bg-white space-y-3 relative">
-                        <div className="flex justify-between items-start text-[10px]">
-                            <span className="bg-gray-100 border border-gray-200 text-gray-700 px-1.5 py-0.5 rounded-sm font-mono font-bold">
-                                Batch {batch.id}
-                            </span>
-                            <span className="font-mono text-gray-400 font-bold">{batch.timestamp}</span>
-                        </div>
-
-                        <div>
-                            <h4 className="text-xs font-bold text-gray-900">{batch.patientName} ({batch.patientId})</h4>
-                            <p className="text-[11px] text-gray-500 font-medium mt-1 leading-relaxed">{batch.itemsDescription}</p>
-                        </div>
-
-                        {/* Verification Checkbox Toggle */}
-                        <label className="flex items-center gap-2 pt-1 text-xs font-semibold text-gray-600 cursor-pointer select-none">
-                            <input
-                                type="checkbox"
-                                checked={batch.isConfirmed}
-                                onChange={() => onToggleConfirm(batch.id)}
-                                disabled={isSubmitting}
-                                className="accent-[#B71C1C] w-3.5 h-3.5 border border-gray-300 rounded-xs"
-                            />
-                            <span className={batch.isConfirmed ? "text-gray-900 font-bold" : ""}>Handover Confirmed</span>
-                        </label>
-                    </div>
-                ))}
-            </div>
-
-            {/* Primary Execution Hub Submit */}
-            <div className="flex justify-end pt-2">
-                <button
-                    type="button"
-                    onClick={onSubmitHandover}
-                    disabled={isSubmitting || !allConfirmed}
-                    className="bg-[#2D3134] hover:bg-black text-white font-bold text-xs uppercase px-6 py-3 rounded-sm flex items-center gap-2 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed tracking-wide shadow-2xs"
-                >
-                    <span>{isSubmitting ? "Processing Handovers..." : "Submit to Protocol Team"}</span>
-                    <Send size={13} />
-                </button>
-            </div>
+  return (
+    <div className="bg-white border border-gray-200 rounded-sm shadow-2xs p-4 space-y-4">
+      <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+        <div className="flex items-center gap-2 text-xs font-bold text-gray-800 uppercase tracking-wider">
+          <Layers size={14} />
+          <span>Protocol counselling handover</span>
         </div>
-    );
+        <span className="bg-gray-800 text-white text-[9px] font-extrabold px-2 py-0.5 rounded-sm">
+          {batches.length} BATCHES
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {batches.map((batch) => (
+          <div key={batch.id} className="border border-gray-200 rounded-sm p-4 bg-white space-y-3">
+            <div className="flex justify-between items-start text-[10px]">
+              <span className="bg-gray-100 border border-gray-200 text-gray-700 px-1.5 py-0.5 rounded-sm font-mono font-bold">
+                {batch.id.slice(0, 8)}
+              </span>
+              <span className="font-mono text-gray-400 font-bold">{batch.timestamp}</span>
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-gray-900">
+                {batch.patientName} ({batch.patientId})
+              </h4>
+              <p className="text-[11px] text-gray-500 font-medium mt-1">{batch.itemsDescription}</p>
+            </div>
+            {(
+              [
+                ["patientNameVerified", "Patient name verified"],
+                ["drugListVerified", "Drug list verified"],
+                ["dosageCounsellingDone", "Dosage counselling done"],
+                ["durationCounsellingDone", "Duration counselling done"],
+              ] as const
+            ).map(([field, label]) => (
+              <label key={field} className="flex items-center gap-2 text-xs font-semibold text-gray-600">
+                <input
+                  type="checkbox"
+                  checked={Boolean(batch[field])}
+                  onChange={() => onToggle(batch.id, field)}
+                  disabled={isSubmitting}
+                  className="accent-[#B71C1C] w-3.5 h-3.5"
+                />
+                {label}
+              </label>
+            ))}
+            <textarea
+              value={batch.counsellingNotes}
+              onChange={(e) => onNotesChange(batch.id, e.target.value)}
+              placeholder="Counselling notes"
+              rows={2}
+              className="w-full border border-gray-200 rounded-sm p-2 text-xs"
+            />
+          </div>
+        ))}
+      </div>
+
+      <div className="flex justify-end pt-2">
+        <button
+          type="button"
+          onClick={onSubmitHandover}
+          disabled={isSubmitting || !canSubmit}
+          className="bg-[#2D3134] hover:bg-black text-white font-bold text-xs uppercase px-6 py-3 rounded-sm flex items-center gap-2 disabled:bg-gray-300 disabled:cursor-not-allowed tracking-wide"
+        >
+          <span>
+            {isSubmitting
+              ? "Processing Handovers..."
+              : `Confirm ${ready.length || ""} handover${ready.length === 1 ? "" : "s"}`}
+          </span>
+          <Send size={13} />
+        </button>
+      </div>
+    </div>
+  );
 }

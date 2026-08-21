@@ -2,8 +2,10 @@ import type {
   CompleteDressingDTO,
   DressingOrder,
   LabRequest,
+  LabResult,
   SubmitLabResultDTO,
 } from "@src/dto/lab";
+import type { DateStatusQuery, DressingOrderStatus } from "@src/dto/common";
 import { API_V1 } from "@src/constants/api";
 import http from "@src/services/http";
 import { asList, unwrapData } from "@src/services/service-utils";
@@ -14,12 +16,21 @@ class LabService {
     throw normalizeApiError(err);
   }
 
-  async listRequests(status = "Pending") {
+  async listRequests(query: DateStatusQuery = { status: "Pending" }) {
     try {
       const response = await http.get(`${API_V1}/lab/requests`, {
-        params: { status },
+        params: query,
       });
       return asList<LabRequest>(response.data);
+    } catch (err) {
+      this.handleError(err);
+    }
+  }
+
+  async getRequest(requestId: string) {
+    try {
+      const response = await http.get(`${API_V1}/lab/requests/${requestId}`);
+      return unwrapData<LabRequest>(response.data);
     } catch (err) {
       this.handleError(err);
     }
@@ -31,18 +42,38 @@ class LabService {
         `${API_V1}/lab/requests/${requestId}/results`,
         payload
       );
-      return unwrapData<unknown>(response.data);
+      return unwrapData<LabResult>(response.data);
     } catch (err) {
       this.handleError(err);
     }
   }
 
-  async listDressingOrders(status = "Pending") {
+  async getEncounterLabResults(encounterId: string) {
+    try {
+      const response = await http.get(
+        `${API_V1}/encounters/${encounterId}/lab-results`
+      );
+      return asList<LabResult>(response.data);
+    } catch (err) {
+      this.handleError(err);
+    }
+  }
+
+  async listDressingOrders(status: DressingOrderStatus = "Pending") {
     try {
       const response = await http.get(`${API_V1}/dressing/orders`, {
         params: { status },
       });
       return asList<DressingOrder>(response.data);
+    } catch (err) {
+      this.handleError(err);
+    }
+  }
+
+  async getDressingOrder(orderId: string) {
+    try {
+      const response = await http.get(`${API_V1}/dressing/orders/${orderId}`);
+      return unwrapData<DressingOrder>(response.data);
     } catch (err) {
       this.handleError(err);
     }
@@ -54,7 +85,7 @@ class LabService {
         `${API_V1}/dressing/orders/${orderId}/complete`,
         payload
       );
-      return unwrapData<unknown>(response.data);
+      return unwrapData<DressingOrder>(response.data);
     } catch (err) {
       this.handleError(err);
     }

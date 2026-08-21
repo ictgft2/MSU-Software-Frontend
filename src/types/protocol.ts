@@ -1,3 +1,5 @@
+import type { ArrivalMode } from "@src/dto/common";
+
 export type CaseType = "STANDARD" | "EMERGENCY";
 
 export interface RegistrationFormData {
@@ -10,6 +12,6 @@ export interface RegistrationFormData {
   nextOfKinPhone: string;
   nextOfKinRelationship: string;
   chiefComplaint: string;
-  arrivalMode: string;
+  arrivalMode: ArrivalMode;
   caseType: CaseType;
 }

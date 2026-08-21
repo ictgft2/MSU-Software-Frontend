@@ -3,7 +3,13 @@ import type {
   QueueEntry,
   QueuePosition,
   ServiceWindow,
+  SetServiceWindowDTO,
+  UpdateServiceWindowDTO,
 } from "@src/dto/operations";
+import type {
+  DrugRegisterExportQuery,
+  DrugRegisterQuery,
+} from "@src/dto/common";
 import { API_V1 } from "@src/constants/api";
 import http from "@src/services/http";
 import { asList, unwrapData } from "@src/services/service-utils";
@@ -23,6 +29,27 @@ class OperationsService {
     }
   }
 
+  async createServiceWindow(payload: SetServiceWindowDTO) {
+    try {
+      const response = await http.post(`${API_V1}/service-window`, payload);
+      return unwrapData<ServiceWindow>(response.data);
+    } catch (err) {
+      this.handleError(err);
+    }
+  }
+
+  async updateServiceWindow(windowId: string, payload: UpdateServiceWindowDTO) {
+    try {
+      const response = await http.patch(
+        `${API_V1}/service-window/${windowId}`,
+        payload
+      );
+      return unwrapData<ServiceWindow>(response.data);
+    } catch (err) {
+      this.handleError(err);
+    }
+  }
+
   async getQueue() {
     try {
       const response = await http.get(`${API_V1}/queue`);
@@ -35,6 +62,15 @@ class OperationsService {
   async joinQueue(encounterId: string) {
     try {
       const response = await http.post(`${API_V1}/queue/${encounterId}/join`);
+      return unwrapData<QueueEntry>(response.data);
+    } catch (err) {
+      this.handleError(err);
+    }
+  }
+
+  async leaveQueue(encounterId: string) {
+    try {
+      const response = await http.delete(`${API_V1}/queue/${encounterId}`);
       return unwrapData<unknown>(response.data);
     } catch (err) {
       this.handleError(err);
@@ -52,27 +88,33 @@ class OperationsService {
     }
   }
 
-  async listDrugRegister(page = 1, limit = 50) {
+  async listDrugRegister(query: DrugRegisterQuery | number = {}, limit = 50) {
     try {
-      const response = await http.get(`${API_V1}/register/drugs`, {
-        params: { page, limit },
-      });
+      const params: DrugRegisterQuery =
+        typeof query === "number"
+          ? { page: query, limit }
+          : { page: 1, limit: 50, ...query };
+      const response = await http.get(`${API_V1}/register/drugs`, { params });
       return asList<DrugRegisterEntry>(response.data);
     } catch (err) {
       this.handleError(err);
     }
   }
 
-  async exportDrugRegisterCsv() {
+  async exportDrugRegister(query: DrugRegisterExportQuery = { format: "csv" }) {
     try {
       const response = await http.get(`${API_V1}/register/drugs/export`, {
-        params: { format: "csv" },
+        params: { format: "csv", ...query },
         responseType: "blob",
       });
       return response.data as Blob;
     } catch (err) {
       this.handleError(err);
     }
+  }
+
+  async exportDrugRegisterCsv() {
+    return this.exportDrugRegister({ format: "csv" });
   }
 }
 

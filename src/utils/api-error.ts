@@ -40,7 +40,11 @@ export function normalizeValidationErrors(
   Object.entries(record).forEach(([key, value]) => {
     const message = normalizeValidationValue(value);
     if (message) {
-      normalized[key] = message;
+      const field = key.startsWith("$.") ? key.slice(2) : key;
+      const readable = /could not be converted/i.test(message)
+        ? `${field} has an invalid type (UUID fields cannot be empty or plain text)`
+        : message;
+      normalized[field] = readable;
     }
   });
 
@@ -115,7 +119,16 @@ export function normalizeApiError(
 }
 
 export function getApiErrorMessage(error: unknown, fallback: string) {
-  return normalizeApiError(error, fallback).message || fallback;
+  const normalized = normalizeApiError(error, fallback);
+  const fieldMessages = Object.entries(normalized.errors || {})
+    .filter(([key]) => key !== "form" && key !== "request")
+    .map(([key, message]) => `${key}: ${message}`);
+
+  if (fieldMessages.length) {
+    return fieldMessages.join(" · ");
+  }
+
+  return normalized.message || fallback;
 }
 
 export function getApiValidationErrors(error: unknown) {
