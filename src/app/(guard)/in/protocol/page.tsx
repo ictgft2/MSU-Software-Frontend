@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import RegistrationForm from "@src/components/protocol/RegistrationForm";
 import RecentRecords from "@src/components/protocol/RecentRecords";
 import WaitlistTerminal from "@src/components/protocol/WaitlistTerminal";
+import AppLoader from "@src/components/ui/AppLoader";
 import operationsService from "@src/services/operations.service";
 import type { ServiceWindow } from "@src/dto/operations";
 import { isServiceWindowOpen, serviceWindowLabel } from "@src/utils/service-window";
@@ -46,7 +47,7 @@ export default function ProtocolPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         <div className="lg:col-span-2 space-y-6">
-          <Suspense fallback={<div className="bg-white border p-5 text-xs text-gray-400">Loading registration…</div>}>
+          <Suspense fallback={<AppLoader label="Loading registration" className="min-h-[14rem] rounded-xl border border-surface-border bg-white" />}>
             <RegistrationForm />
           </Suspense>
           <RecentRecords />
